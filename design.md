@@ -11,6 +11,116 @@ MomNova-Smart Parenting Assistant is an AI-powered maternal mental health suppor
 - **AI-First**: Amazon Bedrock and Comprehend for intelligent features
 - **Cultural Intelligence**: Hinglish support and festival-aware advice
 
+---
+
+## High-Level Architecture
+
+### Event Flow Architecture
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant WebApp
+    participant API
+    participant SentimentAI
+    participant AdviceAI
+    participant Database
+    participant Charts
+    
+    Note right of User: Daily Mood Capture
+    User->>WebApp: Enter mood text
+    WebApp->>API: POST mood entry
+    API->>SentimentAI: Analyze sentiment
+    SentimentAI-->>API: Return negative score
+    API->>Database: Store mood data
+    
+    Note right of User: Journal Entry
+    User->>WebApp: Write journal entry
+    WebApp->>API: POST journal
+    API->>SentimentAI: Analyze text
+    SentimentAI-->>API: Return sentiment
+    API->>Database: Update history
+    
+    Note right of User: Daily Advice Generation
+    API->>AdviceAI: Generate advice
+    AdviceAI->>Database: Get user context
+    AdviceAI-->>API: Return personalized advice
+    API->>Database: Store advice
+    API-->>WebApp: Send advice
+    WebApp-->>User: Display daily advice
+    
+    Note right of User: Mood Visualization
+    User->>WebApp: View mood trends
+    WebApp->>API: GET analytics
+    API->>Charts: Generate charts
+    Charts->>Database: Fetch 30 days data
+    Database-->>Charts: Return history
+    Charts-->>API: Chart data
+    API-->>WebApp: Visualization data
+    WebApp-->>User: Show mood graphs
+    
+    Note right of User: Wellness Check
+    API->>API: Check for 5 sad days
+    API-->>User: Send wellness alert
+```
+
+### System Component Flow
+
+```mermaid
+flowchart TD
+    A[User Input] --> B{Input Type}
+    B -->|Daily Mood| C[Mood Capture]
+    B -->|Journal Entry| D[Journal Processing]
+    B -->|View Trends| E[Analytics Request]
+    B -->|Get Advice| F[Advice Request]
+    
+    C --> G[Text Processing]
+    D --> G
+    G --> H[Amazon Comprehend]
+    H --> I[Sentiment Analysis]
+    I --> J[Mood Classification]
+    J --> K[Database Storage]
+    
+    F --> L[Amazon Bedrock]
+    L --> M[AI Advice Engine]
+    M --> N[Cultural Context]
+    N --> O[Personalized Advice]
+    O --> P[Daily Advice Output]
+    
+    E --> Q[Analytics Engine]
+    Q --> R[Data Retrieval]
+    R --> K
+    K --> S[Chart Generation]
+    S --> T[Mood Visualization]
+    T --> U[Trend Analysis]
+    
+    J --> V{Pattern Detection}
+    V -->|5 Plus Sad Days| W[Wellness Alert]
+    V -->|Positive Trend| X[Encouragement]
+    V -->|Normal Pattern| Y[Regular Support]
+    
+    W --> Z[Crisis Support]
+    X --> AA[Positive Reinforcement]
+    Y --> BB[Standard Advice]
+    
+    P --> CC[Response Delivery]
+    Z --> CC
+    AA --> CC
+    BB --> CC
+    U --> CC
+    
+    CC --> DD[User Interface]
+    DD --> EE[Mother Sees Results]
+    
+    style W fill:#ff9999
+    style Z fill:#ff9999
+    style P fill:#99ff99
+    style T fill:#99ccff
+    style U fill:#99ccff
+```
+
+---
+
 ## Technology Stack Overview
 
 **Frontend**: Svelte 4 + Tailwind CSS + Chart.js (PWA-enabled)
@@ -19,81 +129,6 @@ MomNova-Smart Parenting Assistant is an AI-powered maternal mental health suppor
 **AI Services**: Amazon Bedrock (Claude 3) + Amazon Comprehend
 **Deployment**: AWS Elastic Beanstalk with auto-scaling
 **Monitoring**: Amazon CloudWatch
-
----
-
-## System Architecture
-
-### High-Level Architecture Diagram
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                          USER                               │
-│                   (Browser / Mobile)                        │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│              AWS Elastic Beanstalk (Frontend)               │
-│                                                              │
-│  Svelte PWA Application                                     │
-│  - Dashboard      - Journal Form      - Analytics Charts   │
-│  - Baby Profile   - Settings          - Advice Display     │
-│                                                              │
-│  Features:                                                   │
-│  - Offline capability (Service Workers)                     │
-│  - Responsive design (Tailwind CSS)                         │
-│  - Chart.js visualizations                                  │
-└────────────────────────┬────────────────────────────────────┘
-                         │
-                         │ HTTPS REST API
-                         │ (JSON)
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│              AWS Elastic Beanstalk (Backend)                │
-│                                                              │
-│  .NET 8 Web API (Clean Architecture)                        │
-│  ┌──────────────────────────────────────────────────────┐  │
-│  │  API Layer (Controllers + Middleware)                 │  │
-│  │       ↓                                                │  │
-│  │  Application Layer (CQRS Handlers + MediatR)          │  │
-│  │       ↓                                                │  │
-│  │  Domain Layer (Business Logic)                        │  │
-│  │       ↓                                                │  │
-│  │  Infrastructure Layer (AWS Integrations)              │  │
-│  └──────────────────────────────────────────────────────┘  │
-│                                                              │
-│  Auto-scaling: 1-10 EC2 instances                           │
-│  Health Monitoring: /health endpoint                        │
-└────┬──────────┬───────────┬────────────┬────────────────────┘
-     │          │           │            │
-     ▼          ▼           ▼            ▼
-┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-│ Amazon   │ │ Amazon   │ │ Amazon   │ │ Amazon   │
-│ Cognito  │ │ Bedrock  │ │Comprehend│ │ DynamoDB │
-│          │ │          │ │          │ │          │
-│ User     │ │ Claude 3 │ │Sentiment │ │  NoSQL   │
-│  Auth    │ │   AI     │ │ Analysis │ │   Data   │
-└──────────┘ └──────────┘ └──────────┘ └──────────┘
-     │          │           │            │
-     └──────────┴───────────┴────────────┘
-                         │
-                         ▼
-              ┌──────────────────┐
-              │ Amazon CloudWatch│
-              │                  │
-              │ Logs + Metrics   │
-              │    + Alarms      │
-              └──────────────────┘
-```
-
-### Component Interaction Flow
-
-```
-User Action → Frontend (Svelte) → API Gateway → Controllers → 
-MediatR → Command/Query Handlers → Domain Services → 
-Infrastructure Services → AWS Services → Response Chain
-```
 
 ---
 
